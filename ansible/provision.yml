@@ -3,7 +3,7 @@
   hosts: all
   become: yes
   tasks:
-  #Устанавливаем vim, telnet и mc (для более удобной работы с хостами)
+  #Устанавливаем telnet и mc (для более удобной работы с хостами)
   - name: install base tools
     apt:
       name:
