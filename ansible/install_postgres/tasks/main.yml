@@ -1,0 +1,17 @@
+---
+- name: install postgresql-server 15 and barman cli 
+  ansible.builtin.apt:
+    name:
+      - acl
+      - postgresql 
+      - postgresql-contrib
+      - barman-cli
+    state: present
+    update_cache: true
+
+- name: enable and start postgresql
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+...
