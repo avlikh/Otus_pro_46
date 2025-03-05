@@ -96,7 +96,6 @@ sudo -u postgres psql
 <summary> результат выполнения команды: </summary>
 
 ```
-CREATE DATABASE
                                                List of databases
      Name     |  Owner   | Encoding | Collate |  Ctype  | ICU Locale | Locale Provider |   Access privileges
 --------------+----------+----------+---------+---------+------------+-----------------+-----------------------
@@ -343,9 +342,9 @@ Recovery completed (start time: 2025-03-05 15:45:23.063142+00:00, elapsed time: 
 Your PostgreSQL server has been successfully prepared for recovery!
 ```
 </details>
-Видим, что восстановление выполнено успешно.   
-   
-   
+Видим, что восстановление выполнено успешно.    
+     
+    
 Зайдем на сервер node1, перезапустим postgres и проверим наличие ранее удаленных баз **replica_test** и **otus**
 ```
 systemctl restart postgresql
@@ -373,4 +372,98 @@ sudo -u postgres psql
 (5 rows)
 ```
 </details>
-Видим что базы **replica_test** и **otus** востсановились из резервной копии
+Видим что базы **replica_test** и **otus** восстановились из резервной копии.   
+    
+    
+Проверим среплицировались ли изменения с node1 на node2, после воосстановления кластера postgres.    
+    
+Зайдем на сервер node2  и посмотрим список баз:
+```
+sudo -u postgres psql
+```
+```
+\l
+```
+<details>
+<summary> результат выполнения команды: </summary>
+
+```
+                                             List of databases
+   Name    |  Owner   | Encoding | Collate |  Ctype  | ICU Locale | Locale Provider |   Access privileges
+-----------+----------+----------+---------+---------+------------+-----------------+-----------------------
+ postgres  | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            |
+ template0 | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            | =c/postgres          +
+           |          |          |         |         |            |                 | postgres=CTc/postgres
+ template1 | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            | =c/postgres          +
+           |          |          |         |         |            |                 | postgres=CTc/postgres
+(3 rows)
+```
+</details>
+    
+Видим что баз данных **replica_test** и **otus** нет на кластере node2 (postgres replica).   
+     
+В чем может быть прична?    
+Скорее всего, после восстановления из физического быкапа измениись pg_wal и это привело с нарушению репликации.    
+    
+**Нальем реплику с node1 в node2, для этого:**
+    
+Остановим postgres:
+
+```
+systemctl stop postgresql
+```
+
+Удалим датафайлы postgres: 
+```
+rm -rf /var/lib/postgresql/15/main/*
+```
+
+Зальем перлику с node1 в node2:
+```
+PGPASSWORD='Otus2022!' pg_basebackup -h 192.168.57.11 -U replication -p 5432 -D /var/lib/postgresql/15/main/ -R -P
+```
+`38207/38207 kB (100%), 1/1 tablespace`    
+    
+Сменим вледельца папки: /var/lib/postgresql/15/main
+```
+chown -R postgres:postgres /var/lib/postgresql/15/main
+```
+     
+Запустим сервис postgres:
+```
+systemctl start postgresql
+```
+     
+Посмотрим на базы данных в класетер postgres node1:
+
+```
+sudo -u postgres psql
+```
+```
+\l
+```
+<details>
+<summary> результат выполнения команды: </summary>
+
+```
+                                               List of databases
+     Name     |  Owner   | Encoding | Collate |  Ctype  | ICU Locale | Locale Provider |   Access privileges
+--------------+----------+----------+---------+---------+------------+-----------------+-----------------------
+ otus         | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            |
+ postgres     | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            |
+ replica_test | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            |
+ template0    | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            | =c/postgres          +
+              |          |          |         |         |            |                 | postgres=CTc/postgres
+ template1    | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            | =c/postgres          +
+              |          |          |         |         |            |                 | postgres=CTc/postgres
+(5 rows)
+```
+</details>
+     
+Видим, что все базы успешно среплицировались с кластера postgres node1
+
+---
+
+
+
+
