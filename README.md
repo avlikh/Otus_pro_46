@@ -298,5 +298,78 @@ sudo -u postgres psql
 </details>
 Видим, что базы удалились.
 
-Восстановим кластер postgres node1 с сервера barman:
+**Восстановим кластер postgres node1 с сервера barman:**
 
+Зайдем на сервер barman и проверим посмотрим список резервных копий node1:
+```
+su -u barman
+```
+```
+barman list-backup node1
+```
+`node1 20250305T151133 - Wed Mar  5 12:11:34 2025 - Size: 36.5 MiB - WAL Size: 0 B`   
+   
+Выполним восстановление:
+```
+barman recover node1 20250305T151133 /var/lib/postgresql/15/main/ --remote-ssh-comman "ssh postgres@192.168.57.11"
+```
+
+<details>
+<summary> результат выполнения команды: </summary>
+
+```
+The authenticity of host '192.168.57.11 (192.168.57.11)' can't be established.
+ED25519 key fingerprint is SHA256:X/+Bp798rl0xNTO4CyZpu7E6xK/9U3PWU2VGElDBOvY.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Starting remote restore for server node1 using backup 20250305T151133
+Destination directory: /var/lib/postgresql/15/main/
+Remote command: ssh postgres@192.168.57.11
+Copying the base backup.
+Copying required WAL segments.
+Generating archive status files
+Identify dangerous settings in destination directory.
+
+WARNING
+The following configuration files have not been saved during backup, hence they have not been restored.
+You need to manually restore them in order to start the recovered PostgreSQL instance:
+
+    postgresql.conf
+    pg_hba.conf
+    pg_ident.conf
+
+Recovery completed (start time: 2025-03-05 15:45:23.063142+00:00, elapsed time: 9 seconds)
+Your PostgreSQL server has been successfully prepared for recovery!
+```
+</details>
+Видим, что восстановление выполнено успешно.   
+   
+   
+Зайдем на сервер node1, перезапустим postgres и проверим наличие ранее удаленных баз **replica_test** и **otus**
+```
+systemctl restart postgresql
+```
+```
+sudo -u postgres psql
+```
+```
+\l
+```
+<details>
+<summary> результат выполнения команды: </summary>
+
+```
+                                               List of databases
+     Name     |  Owner   | Encoding | Collate |  Ctype  | ICU Locale | Locale Provider |   Access privileges
+--------------+----------+----------+---------+---------+------------+-----------------+-----------------------
+ otus         | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            |
+ postgres     | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            |
+ replica_test | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            |
+ template0    | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            | =c/postgres          +
+              |          |          |         |         |            |                 | postgres=CTc/postgres
+ template1    | postgres | UTF8     | C.UTF-8 | C.UTF-8 |            | libc            | =c/postgres          +
+              |          |          |         |         |            |                 | postgres=CTc/postgres
+(5 rows)
+```
+</details>
+Видим что базы **replica_test** и **otus** востсановились из резервной копии
