@@ -165,13 +165,22 @@
       mode: '0755'
     when: (ansible_hostname == "barman")
 
-  - name: barman switch-wal node1
-    become_user: barman
-    shell: barman switch-wal node1
+  # Меняем права на папку /var/log/barman
+  - name: Change owner and group for /var/log/barman
+    file:
+      path: /var/log/barman
+      owner: barman
+      group: barman
+      recurse: yes
     when: (ansible_hostname == "barman")
 
-  - name: barman cron
-    become_user: barman
-    shell: barman cron
-    when: (ansible_hostname == "barman")
+#  - name: barman switch-wal node1
+#    become_user: barman
+#    shell: barman switch-wal node1
+#    when: (ansible_hostname == "barman")
+#
+#  - name: barman cron
+#    become_user: barman
+#    shell: barman cron
+#    when: (ansible_hostname == "barman")
 ...
