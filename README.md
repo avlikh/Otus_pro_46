@@ -465,7 +465,7 @@ sudo -u postgres psql
 ---
 
 P.S.    
-Конфиги node1/node2:
+**Конфиги node1/node2:**
 <details>
 <summary> /etc/postgresql/15/main/postgresql.conf </summary>
 
@@ -629,7 +629,7 @@ host    replication   barman    192.168.57.13/32    scram-sha-256
 
 
 
-Конфиги barman:
+**Конфиги barman:**
 <details>
 <summary> /etc/barman.conf </summary>
 
